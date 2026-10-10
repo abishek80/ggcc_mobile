@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009914799202",
+    "project_id": "ggcc-93d5f",
+    "storage_bucket": "ggcc-93d5f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009914799202:android:149121ad03763fc3e35d3b",
+        "android_client_info": {
+          "package_name": "com.example.ggcc_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC19Sj615EPgbUP1sk7VcKpFHrB94ZniTU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
