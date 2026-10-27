@@ -4,14 +4,14 @@ plugins {
 }
 
 android {
-    namespace = "com.example.ggcc_mobile"
+    namespace = "in.org.ggcc.mobile"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.ggcc_mobile"
+        applicationId = "in.org.ggcc.mobile"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 1
+        targetSdk = 36
+        versionCode = 5
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

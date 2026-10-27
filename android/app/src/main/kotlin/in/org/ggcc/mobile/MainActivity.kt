@@ -1,4 +1,4 @@
-package com.example.ggcc_mobile
+package `in`.org.ggcc.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 
