@@ -37,6 +37,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Android App Link: https://ggcc.org.in/app - opens the app directly
+                 (instead of a browser) when already installed, verified against
+                 /.well-known/assetlinks.json hosted on that domain. Not installed
+                 or verification unavailable -> falls through to the web page,
+                 which redirects to the Play Store. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="ggcc.org.in"
+                    android:pathPrefix="/app"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

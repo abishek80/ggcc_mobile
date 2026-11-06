@@ -15,6 +15,7 @@ import 'payslips_screen.dart';
 import 'payslip_pdf_viewer_screen.dart';
 import 'profile_screen.dart';
 import 'attendance_screen.dart';
+import 'branch_attendance_screen.dart';
 import 'notifications_screen.dart';
 import '../services/attendance_service.dart';
 import '../models/attendance_model.dart';
@@ -115,13 +116,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         profileData.personalDetails.employeePhoto,
         profileData.employeeName,
       );
+      if (profileData.isBranchIncharge != null) {
+        await _authService.setStoredBranchIncharge(profileData.isBranchIncharge!);
+      }
       final updatedUser = await _authService.getStoredUser();
       if (mounted) {
         setState(() {
           _user = updatedUser;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      // Expired server token: same handling as the other dashboard loaders.
+      // (Swallowing this left stale sessions without the Branch Incharge flag.)
+      if (e.toString().contains('401') && mounted) {
+        handleSessionExpired(context);
+      }
+    }
   }
 
   Future<void> _loadCurrentMonthAttendance() async {
@@ -764,6 +774,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             },
           ),
+          // Only for the one employee who manages a branch's attendance.
+          if (_user?.isBranchIncharge == true)
+            ListTile(
+              leading: const Icon(Icons.groups_rounded, color: Color(0xFF7C3AED)),
+              title: const TranslatedText('Branch Attendance', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const BranchAttendanceScreen()))
+                    // A 403 inside the flow clears the stored flag; re-read it.
+                    .then((_) async {
+                  final user = await _authService.getStoredUser();
+                  if (mounted) setState(() => _user = user);
+                });
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.receipt_long_rounded, color: Color(0xFF0284C7)),
             title: const TranslatedText('My Payslip', style: TextStyle(fontWeight: FontWeight.w600)),

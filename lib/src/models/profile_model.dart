@@ -187,7 +187,11 @@ class UserProfileData {
   final PersonalDetails personalDetails;
   final ContactDetails contactDetails;
 
+  /// null when the profile response does not carry the flag at all.
+  final bool? isBranchIncharge;
+
   UserProfileData({
+    this.isBranchIncharge,
     required this.employeeId,
     required this.employeeCode,
     required this.loginCode,
@@ -226,7 +230,14 @@ class UserProfileData {
   });
 
   factory UserProfileData.fromJson(Map<String, dynamic> json) {
+    final rawIncharge = json['is_branch_incharge'];
     return UserProfileData(
+      isBranchIncharge: rawIncharge == null
+          ? null
+          : (rawIncharge == true ||
+              rawIncharge == 1 ||
+              rawIncharge.toString() == '1' ||
+              rawIncharge.toString().toLowerCase() == 'true'),
       employeeId: json['employee_id']?.toString().trim() ?? '',
       employeeCode: json['employee_code']?.toString().trim() ?? '',
       loginCode: json['login_code']?.toString().trim() ?? '',
@@ -236,9 +247,10 @@ class UserProfileData {
       zone: json['zone']?.toString().trim() ?? '',
       branch: json['branch']?.toString().trim() ?? '',
       branchName: json['branch_name']?.toString().trim() ?? '',
-      employeeName: json['employee_name']?.toString().trim() ?? '',
+      // Some accounts get the short profile payload, which uses `name`.
+      employeeName: (json['employee_name'] ?? json['name'])?.toString().trim() ?? '',
       email: json['email']?.toString().trim() ?? '',
-      mobileNumber: json['mobile_number']?.toString().trim() ?? '',
+      mobileNumber: (json['mobile_number'] ?? json['mobile'])?.toString().trim() ?? '',
       designation: json['designation']?.toString().trim() ?? '',
       doj: json['doj']?.toString().trim() ?? '',
       dojFormatted: json['doj_formatted']?.toString().trim() ?? '',

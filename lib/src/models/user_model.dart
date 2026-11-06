@@ -10,6 +10,10 @@ class UserModel {
   final String isAdmin;
   final List<String> permissions;
 
+  /// True only for the employee who manages a branch's attendance.
+  /// Gates the "Branch Attendance" feature.
+  final bool isBranchIncharge;
+
   UserModel({
     required this.id,
     required this.name,
@@ -19,7 +23,19 @@ class UserModel {
     required this.profileImg,
     required this.isAdmin,
     required this.permissions,
+    this.isBranchIncharge = false,
   });
+
+  /// Strict boolean parse: only `true` / 1 / "1" / "true" count as true.
+  static bool parseBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value == 1;
+    if (value is String) {
+      final v = value.trim().toLowerCase();
+      return v == '1' || v == 'true';
+    }
+    return false;
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     List<String> parsedPermissions = [];
@@ -45,6 +61,7 @@ class UserModel {
       profileImg: json['profile_img']?.toString() ?? '',
       isAdmin: json['is_admin']?.toString() ?? '0',
       permissions: parsedPermissions,
+      isBranchIncharge: parseBool(json['is_branch_incharge']),
     );
   }
 
@@ -58,6 +75,7 @@ class UserModel {
       'profile_img': profileImg,
       'is_admin': isAdmin,
       'permission': jsonEncode(permissions),
+      'is_branch_incharge': isBranchIncharge,
     };
   }
 }

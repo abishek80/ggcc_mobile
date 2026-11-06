@@ -366,29 +366,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              if (_profileData!.personalDetails.employeePhoto.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                TextButton.icon(
-                  onPressed: () => _previewFile(
-                    _profileData!.personalDetails.employeePhoto,
-                    'Profile Photo',
-                  ),
-                  icon: const Icon(Icons.photo_outlined, size: 16, color: Color(0xFFC91115)),
-                  label: const TranslatedText(
-                    'View Profile Photo',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFC91115),
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ],
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,

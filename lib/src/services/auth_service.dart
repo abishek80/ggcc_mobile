@@ -168,7 +168,21 @@ class AuthService {
       try {
         final Map<String, dynamic> userMap = jsonDecode(userJsonStr);
         userMap['profile_img'] = imageUrl;
-        userMap['name'] = name;
+        // Never replace a known name with an empty one.
+        if (name.trim().isNotEmpty) userMap['name'] = name;
+        await prefs.setString(_keyUserJson, jsonEncode(userMap));
+      } catch (_) {}
+    }
+  }
+
+  /// Updates only the Branch Incharge flag in the stored User profile
+  Future<void> setStoredBranchIncharge(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userJsonStr = prefs.getString(_keyUserJson);
+    if (userJsonStr != null && userJsonStr.isNotEmpty) {
+      try {
+        final Map<String, dynamic> userMap = jsonDecode(userJsonStr);
+        userMap['is_branch_incharge'] = value;
         await prefs.setString(_keyUserJson, jsonEncode(userMap));
       } catch (_) {}
     }
