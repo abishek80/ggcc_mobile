@@ -5,35 +5,60 @@ import '../services/language_manager.dart';
 
 class UpdateDialog extends StatelessWidget {
   final AppUpdateInfo updateInfo;
+  final VoidCallback? onDismiss;
 
-  const UpdateDialog({super.key, required this.updateInfo});
+  const UpdateDialog({
+    super.key,
+    required this.updateInfo,
+    this.onDismiss,
+  });
 
-  Future<void> _redirectToStore() async {
+  Future<void> _redirectToStore(BuildContext context) async {
     try {
-      final Uri url = Uri.parse(updateInfo.updateUrl);
+      String urlString = updateInfo.updateUrl.trim();
+      if (urlString.isEmpty) {
+        urlString = 'https://play.google.com/store/apps/details?id=in.org.ggcc.mobile';
+      }
+      final Uri url = Uri.parse(urlString);
+
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
-        // Fallback launch
         await launchUrl(url, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
       debugPrint('Could not launch update URL: $e');
     }
+
+    // For non-forced updates, dismiss the dialog when redirected to store
+    if (!updateInfo.isForce && context.mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _onDismiss(BuildContext context) {
+    // Record that the user postponed/dismissed this version (non-forced)
+    if (!updateInfo.isForce) {
+      VersionCheckService.markVersionDismissed(updateInfo.latestVersion);
+    }
+    if (onDismiss != null) {
+      onDismiss!();
+    } else if (context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final primaryColor = const Color(0xFFC91115);
-    final secondaryColor = const Color(0xFF181D50);
 
     return PopScope(
-      // Prevent dismissing the dialog using the Android back button if it's a force update
+      // Prevent dismissing using the Android back button only if it's a critical/force update
       canPop: !updateInfo.isForce,
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        // Do nothing for force updates
+        if (didPop && !updateInfo.isForce) {
+          VersionCheckService.markVersionDismissed(updateInfo.latestVersion);
+        }
       },
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -44,11 +69,11 @@ class UpdateDialog extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Beautiful Header Icon Container
+              // Header Icon Container
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.1),
+                  color: primaryColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -118,7 +143,7 @@ class UpdateDialog extends StatelessWidget {
               // Action Buttons
               Row(
                 children: [
-                  // Show cancel button only if it's a flexible/soft update
+                  // Show "Not Now" button for non-forced/flexible update
                   if (!updateInfo.isForce) ...[
                     Expanded(
                       child: OutlinedButton(
@@ -129,7 +154,7 @@ class UpdateDialog extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => _onDismiss(context),
                         child: Text(
                           LanguageManager.instance.translateSync('Not Now'),
                           style: const TextStyle(
@@ -153,7 +178,7 @@ class UpdateDialog extends StatelessWidget {
                         ),
                         elevation: 0,
                       ),
-                      onPressed: _redirectToStore,
+                      onPressed: () => _redirectToStore(context),
                       child: Text(
                         LanguageManager.instance.translateSync('Update Now'),
                         style: const TextStyle(
@@ -174,11 +199,5 @@ class UpdateDialog extends StatelessWidget {
 
 /// Helper function to show update dialog
 void showAppUpdateDialog(BuildContext context, AppUpdateInfo updateInfo) {
-  showDialog(
-    context: context,
-    barrierDismissible: !updateInfo.isForce, // cannot dismiss clicking outside if force update
-    builder: (BuildContext context) {
-      return UpdateDialog(updateInfo: updateInfo);
-    },
-  );
+  VersionCheckManager.instance.showDialogNow(context, updateInfo);
 }

@@ -6,7 +6,6 @@ import 'src/screens/login_screen.dart';
 import 'src/services/auth_service.dart';
 import 'src/services/language_manager.dart';
 import 'src/services/version_check_service.dart';
-import 'src/screens/update_dialog.dart';
 import 'src/services/firebase_notification_service.dart';
 
 void main() async {
@@ -32,6 +31,7 @@ class GgccMobileApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'GGCC',
+      navigatorKey: VersionCheckManager.navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -59,7 +59,7 @@ class AuthWrapper extends StatefulWidget {
   State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _AuthWrapperState extends State<AuthWrapper> {
+class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   final _authService = AuthService();
   bool _isChecking = true;
   bool _isLoggedIn = false;
@@ -67,16 +67,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkAuthSession();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkVersionAndShowDialog();
+      VersionCheckManager.instance.checkAndShowUpdate(context);
     });
   }
 
-  Future<void> _checkVersionAndShowDialog() async {
-    final updateInfo = await VersionCheckService.checkAppVersion();
-    if (updateInfo != null && mounted) {
-      showAppUpdateDialog(context, updateInfo);
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      VersionCheckManager.instance.handleAppResumed(context);
     }
   }
 
