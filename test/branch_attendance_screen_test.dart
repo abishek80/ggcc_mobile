@@ -58,6 +58,42 @@ http.Client _mockApi(int employeeCount) {
 }
 
 void main() {
+  testWidgets('only Sunday rows are highlighted', (tester) async {
+    SharedPreferences.setMockInitialValues({'flutter.auth_token': 'x'});
+    tester.view.physicalSize = const Size(390 * 3, 800 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    const employees = 3;
+    final now = DateTime.now();
+    final sundays = [
+      for (var d = 1; d <= 30; d++)
+        if (DateTime(now.year, now.month, d).weekday == DateTime.sunday) d
+    ].length;
+
+    int countColored(Color color) => tester
+        .widgetList<Container>(find.byType(Container))
+        .where((c) =>
+            c.decoration is BoxDecoration &&
+            (c.decoration as BoxDecoration).color == color)
+        .length;
+
+    await http.runWithClient(() async {
+      await tester.pumpWidget(const MaterialApp(home: BranchAttendanceScreen()));
+      await tester.pumpAndSettle();
+
+      // Body cells are built lazily only within the viewport's scroll extent,
+      // but the grid builds every row, so counts are exact.
+      // Date cell + one cell per employee, per Sunday, all the same colour.
+      // The pinned OT totals row happens to use the same colour, so it adds
+      // one label cell + one cell per employee.
+      const otFooterCells = employees + 1;
+      expect(countColored(const Color(0xFFEFF6FF)),
+          sundays * (employees + 1) + otFooterCells,
+          reason: 'whole Sunday row tinted');
+    }, () => _mockApi(employees));
+  });
+
   for (final count in [4, 12]) {
     testWidgets('month grid renders with $count employees, no overflow', (tester) async {
       SharedPreferences.setMockInitialValues({'flutter.auth_token': 'x'});
@@ -75,7 +111,10 @@ void main() {
         expect(find.text('Present'), findsOneWidget);
         expect(find.text('Absent'), findsOneWidget);
         expect(find.text('OT'), findsNWidgets(2)); // legend + footer label
-        expect(find.text('Coimbatore'), findsOneWidget);
+        // The Zone / Branch card was removed from this screen.
+        expect(find.text('Coimbatore'), findsNothing);
+        expect(find.text('Zone'), findsNothing);
+        expect(find.text('Branch'), findsNothing);
 
         // Day cells + OT total shown exactly as sent by the API.
         expect(find.text('Half OT'), findsOneWidget);

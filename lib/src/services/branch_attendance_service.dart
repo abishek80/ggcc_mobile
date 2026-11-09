@@ -62,7 +62,7 @@ bool handleBranchAttendanceAuthError(BuildContext context, Object e) {
 
 class BranchAttendanceService {
   static String get _baseUrl => '${ApiConfig.baseUrl}/branch-attendance';
-  static const Duration _timeout = Duration(seconds: 20);
+  static const Duration _timeout = Duration(seconds: 30);
 
   final AuthService _authService = AuthService();
 

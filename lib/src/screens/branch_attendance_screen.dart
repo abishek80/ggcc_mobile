@@ -32,6 +32,10 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
   static const double _rowH = 44;
   static const double _footRowH = 32;
 
+  // Sunday row highlight.
+  static const Color _sundayBg = Color(0xFFEFF6FF);
+  static const Color _sundayDateBg = _sundayBg;
+
   // Header and footer follow the body's horizontal scroll position.
   final ScrollController _hBody = ScrollController();
   final ScrollController _hHead = ScrollController();
@@ -42,11 +46,6 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
   late final List<int> _years;
 
   BranchMonthData? _data;
-
-  // Header values come from GET /day (the incharge's own branch), NOT from the
-  // employee rows - added employees can belong to other branches.
-  String _zone = '';
-  String _branchName = '';
 
   bool _isLoading = true;
   String? _error;
@@ -87,29 +86,10 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
       _error = null;
     });
     try {
-      // Auth failures (401/403) must surface; anything else on the header
-      // request just leaves the header blank instead of failing the grid.
-      final dayFuture = _service
-          .fetchDay(DateTime.now())
-          .then<BranchDayData?>((d) => d)
-          .catchError((Object e) {
-        if (e is BranchUnauthorizedException || e is BranchForbiddenException) {
-          throw e;
-        }
-        return null;
-      });
-      final results = await Future.wait<Object?>([
-        _service.fetchMonth(_year, _months[_monthIndex]),
-        dayFuture,
-      ]);
+      final data = await _service.fetchMonth(_year, _months[_monthIndex]);
       if (!mounted) return;
-      final day = results[1] as BranchDayData?;
       setState(() {
-        _data = results[0] as BranchMonthData;
-        if (day != null) {
-          _zone = day.zone;
-          _branchName = day.branchName;
-        }
+        _data = data;
         _isLoading = false;
       });
     } catch (e) {
@@ -292,7 +272,6 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
     final data = _data!;
     return Column(
       children: [
-        _buildHeader(data),
         _buildLegend(),
         Expanded(
           child: data.employees.isEmpty
@@ -306,58 +285,6 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
               : _buildGrid(data),
         ),
       ],
-    );
-  }
-
-  Widget _buildHeader(BranchMonthData data) {
-    Widget item(String label, String value) => Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TranslatedText(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF64748B),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value.isEmpty ? '-' : value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-            ],
-          ),
-        );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Card(
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              item('Zone', _titleCase(_zone)),
-              const SizedBox(width: 12),
-              item('Branch', _branchName),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -513,13 +440,17 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
       ));
 
       // ---- body: frozen date column + horizontally scrolling day rows
+      // Sunday rows are tinted across the whole row (date cell + every employee).
+      bool isSunday(int d) =>
+          DateTime(_year, _monthIndex + 1, d).weekday == DateTime.sunday;
+
       final dateColumn = Column(
         children: [
           for (var d = 1; d <= days; d++)
             cell(
               width: _dateW,
               height: _rowH,
-              color: headBg,
+              color: isSunday(d) ? _sundayDateBg : headBg,
               child: _buildDateLabel(d),
             ),
         ],
@@ -534,7 +465,7 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
                   cell(
                     width: colW,
                     height: _rowH,
-                    color: Colors.white,
+                    color: isSunday(d) ? _sundayBg : Colors.white,
                     child: _buildDayValue(e.dailyAttendance[d]),
                   ),
               ],
@@ -630,18 +561,22 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
       children: [
         Text(
           '$day',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF334155),
+            color: weekday == DateTime.sunday
+                ? const Color(0xFFB91C1C)
+                : const Color(0xFF334155),
           ),
         ),
         Text(
           LanguageManager.instance.translateSync(_weekdayShort[weekday - 1]),
           style: TextStyle(
             fontSize: 9,
+            fontWeight:
+                weekday == DateTime.sunday ? FontWeight.bold : FontWeight.normal,
             color: weekday == DateTime.sunday
-                ? const Color(0xFFDC2626)
+                ? const Color(0xFFB91C1C)
                 : const Color(0xFF94A3B8),
           ),
         ),
@@ -738,11 +673,4 @@ class _BranchAttendanceScreenState extends State<BranchAttendanceScreen> {
   /// 2.0 -> "2".
   static String _formatOt(double v) =>
       v == v.truncateToDouble() ? v.toInt().toString() : v.toString();
-
-  static String _titleCase(String s) => s.isEmpty
-      ? s
-      : s
-          .split(' ')
-          .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
-          .join(' ');
 }
